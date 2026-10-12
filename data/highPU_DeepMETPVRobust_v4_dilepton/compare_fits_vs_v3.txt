@@ -1,0 +1,18 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791831391.881661 3838526 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+I0000 00:00:1791831395.595184 3838526 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791831416.431375 3838526 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+E0000 00:00:1791831430.883373 3838526 cuda_platform.cc:52] failed call to cuInit: INTERNAL: CUDA error: Failed call to cuInit: UNKNOWN ERROR (303)
+fit           status ref/new   edm ref   edm new loss ref - new  max|dx|/sigma  chi2(dx)/n   max |shift of the quantiles| (GeV) at qT = [2, 5, 10, 20, 40, 60, 80, 100]
+z_para             0/0        2.84e-05  6.59e-06 -38696846.6088          1.332   7.841e+02   3.348 3.171 2.935 3.156 2.710 2.354 2.347 2.549
+z_perp             0/0        2.58e-05  3.04e-05 -37068932.4319          1.336   2.534e+02   1.556 1.643 1.661 1.581 1.114 1.103 2.583 3.556
+bkg_para           0/0        3.21e-12  1.28e-08  -1395537.0410          8.163   1.053e+03   1.563 4.793 5.333 5.073 5.633 7.339 8.234 9.039
+bkg_perp           0/0        7.56e-10  9.82e-10  -1412393.4421          1.763   1.014e+02   2.023 3.034 3.173 3.756 4.751 6.300 8.372 10.410
+data_para          0/0        5.25e-07  1.67e-08  -6047917.4782          4.751   3.105e+02   3.968 4.602 4.520 5.582 6.241 4.371 4.160 4.890
+data_perp          0/0        3.87e-06  1.48e-06  -5822617.0654          4.627   1.369e+02   4.324 4.874 2.658 3.331 4.968 4.507 3.289 3.449
+z_para_ext         0/0        1.12e-03  2.93e-04 -38696606.9488          2.309   6.957e+02   3.356 3.184 2.960 3.070 2.999 2.724 2.517 2.325
+z_perp_ext         0/0        1.96e-03  9.49e-05 -37068916.3685          1.739   2.072e+02   1.713 1.789 1.661 2.128 1.124 2.253 1.645 2.297
+data_para_ext       1/0        1.18e-01  1.27e-10  -6047841.3697          9.203   2.629e+02   3.943 3.837 3.933 4.473 4.509 9.775 8.899 7.949
+data_perp_ext       0/0        2.89e-10  2.17e-13  -5822605.6044          3.823   1.381e+02   4.495 4.705 2.723 3.143 4.597 5.284 6.971 12.769

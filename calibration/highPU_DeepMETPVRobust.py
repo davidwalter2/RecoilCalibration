@@ -23,7 +23,7 @@ KNOTS = {
     "perp": [1, 4, 8, 20, 60],
 }
 # variation of the qT parametrisation above the last nominal knot: an extra knot at 90 GeV,
-# extrapolating linearly beyond it instead of beyond 60 GeV
+# extrapolating linearly beyond it instead of beyond 60 GeV (defaults of the command line options)
 KNOTS_EXT = {
     "para": [1, 4, 8, 15, 30, 60, 90],
     "perp": [1, 4, 8, 20, 60, 90],
@@ -98,7 +98,7 @@ def export(out, bkg_var=True, ext=True):
             for var in ("Up", "Down"):
                 exp.add_systematic(f"bkg_{comp}{var}", data_nom, f"{dataDir}/data_{comp}_bkg{var}_postfit.pkl", para=para)
         if ext:
-            # alternative qT parametrisation of both the MC and the data fit, with an extra knot at 90 GeV
+            # alternative qT parametrisation of both the MC and the data fit (by default an extra knot at 90 GeV)
             exp.add_systematic(f"qtParam_{comp}", data_nom, f"{dataDir}/data_{comp}_ext_postfit.pkl", source=mc_nom, source_alt=f"{dataDir}/z_{comp}_ext_postfit.pkl", para=para)
         exp.add_pdf(f"data_{comp}", data_nom, para=para)
         exp.add_pdf(f"mc_{comp}", mc_nom, para=para)
@@ -131,7 +131,17 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="model_mc_data.tflite", help="Name of the exported model in dataDir")
     parser.add_argument("--polish", action="store_true", help="Continue the minimization of the existing constrained fits of the steps, instead of fitting from scratch")
     parser.add_argument("--trustExact", action="store_true", help="Minimize the constrained likelihood directly with trust-exact, instead of the unconstrained and constrained fits with trust-krylov")
+    parser.add_argument("--qtBins", type=float, nargs="+", default=QT_REBIN, help="Bins in qT of the fits (the fit range is from the first to the last edge)")
+    parser.add_argument("--knotsPara", type=float, nargs="+", default=KNOTS["para"], help="Knots in qT of the splines for the parallel component, linear extrapolation beyond the last")
+    parser.add_argument("--knotsPerp", type=float, nargs="+", default=KNOTS["perp"], help="Knots in qT of the splines for the perpendicular component, linear extrapolation beyond the last")
+    parser.add_argument("--knotsParaExt", type=float, nargs="+", default=KNOTS_EXT["para"], help="Knots of the alternative parametrisation (qtParam systematic) for the parallel component")
+    parser.add_argument("--knotsPerpExt", type=float, nargs="+", default=KNOTS_EXT["perp"], help="Knots of the alternative parametrisation (qtParam systematic) for the perpendicular component")
     args = parser.parse_args()
+
+    # integral edges as int, the lower edge is also used as a bin index in the fitter
+    QT_REBIN = [int(x) if float(x).is_integer() else x for x in args.qtBins]
+    KNOTS = {"para": args.knotsPara, "perp": args.knotsPerp}
+    KNOTS_EXT = {"para": args.knotsParaExt, "perp": args.knotsPerpExt}
 
     logging.basicConfig(level=logging.INFO)
     met = "DeepMETPVRobust"

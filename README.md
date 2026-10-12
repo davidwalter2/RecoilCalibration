@@ -42,6 +42,24 @@ processes are background. Calibrations:
 - `data/highPU_DeepMETPVRobust_v3_noTheoryCorr/`: only the inputs of the same histmaker without theory corrections
   (`--theoryCorr --ewTheoryCorr`), for the comparison with the May 2024 inputs, which had none
   (`inputs_May2024_vs_noTheoryCorr.txt`), and with the inputs of v3 (`inputs_noTheoryCorr_vs_theoryCorr.txt`).
+- `data/highPU_DeepMETPVRobust_v4_dilepton/`: inputs from the dilepton histmaker with the dilepton trigger selection and
+  a wider muon acceptance (`mz_dilepton.py --recoilHists --useDileptonTriggerSelection --pt 174 26 200`,
+  `/ceph/submit/data/user/d/david_w/WMassAnalysis/histmaker_results/261012_recoilInputs_dilepton/mz_dilepton_scetlib_dyturbo_CT18Z_N3p0LL_N2LO_Corr_maxFiles_m1_wideAcceptance.hdf5`):
+  9.24M instead of 7.52M data events, 168k instead of about 2k above qT = 100 GeV. Fitted with the default configuration,
+  compared with v3 for the dependence on the selection (`compare_fits_vs_v3.txt`, `summary_vs_v3.txt`).
+- `data/highPU_DeepMETPVRobust_v4_dilepton_wide/`: the same inputs fitted up to qT = 200 GeV, with knots up to 150 GeV
+  and an extra knot at 200 GeV for the qtParam variation, to measure the calibration where the default configuration
+  extrapolates (`summary_vs_v3.txt`, `summary_vs_v4_dilepton.txt`):
+
+  ```shell
+  calibration/run_highPU_DeepMETPVRobust.sh data/highPU_DeepMETPVRobust_v4_dilepton_wide <plotDir> \
+      --qtBins $(seq 0 30) $(seq 32 2 50) $(seq 55 5 80) 90 100 110 120 135 150 175 200 \
+      --knotsPara 1 4 8 15 30 60 100 150 --knotsPerp 1 4 8 20 60 100 150 \
+      --knotsParaExt 1 4 8 15 30 60 100 150 200 --knotsPerpExt 1 4 8 20 60 100 150 200
+  ```
+
+  The fit `data_para_ext` ends at edm = 0.46 (continuing it with `--polish` does not improve it); it only enters the
+  qtParam systematic.
 
 Changes with respect to the May 2024 calibration:
 - Weights for the statistical uncertainties: a variation of the data fit parameters changes the calibrated distribution

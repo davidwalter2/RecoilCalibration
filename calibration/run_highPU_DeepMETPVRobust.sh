@@ -3,15 +3,17 @@
 # their dependencies (the data fits need the background and the MC fits), then export the model.
 # Each fit uses ~5 cores, run on a large node.
 # Run from the repository root after sourcing setup.sh:
-#   calibration/run_highPU_DeepMETPVRobust.sh [dataDir] [plotDir]
+#   calibration/run_highPU_DeepMETPVRobust.sh [dataDir] [plotDir] [further options of the driver, e.g. --qtBins ...]
 
 DATADIR=${1:-data/highPU_DeepMETPVRobust_v2}
 PLOTDIR=${2:-${HOME}/public_html/WMass/261011_recoilCalibration/highPU_DeepMETPVRobust}
+shift $(( $# < 2 ? $# : 2 ))
+EXTRA="$@"
 LOGDIR=${DATADIR}/logs
 mkdir -p ${LOGDIR}
 
 run() {
-    python calibration/highPU_DeepMETPVRobust.py --dataDir ${DATADIR} --plotDir ${PLOTDIR} --steps "$@" > ${LOGDIR}/$1.log 2>&1
+    python calibration/highPU_DeepMETPVRobust.py --dataDir ${DATADIR} --plotDir ${PLOTDIR} ${EXTRA} --steps "$@" > ${LOGDIR}/$1.log 2>&1
     local rc=$?
     echo "$(date +%T) $1 finished with exit code ${rc}"
 }
