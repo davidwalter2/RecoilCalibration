@@ -39,6 +39,9 @@ processes are background. Calibrations:
   theory corrections (`mz_wlike_with_mu_eta_pt.py --recoilHists`,
   `/ceph/submit/data/user/d/david_w/WMassAnalysis/histmaker_results/261012_wlike_lowMt/mz_wlike_with_mu_eta_pt_scetlib_dyturbo_CT18Z_N3p0LL_N2LO_Corr_maxFiles_m1_recoilInputs.hdf5`),
   also containing the recoil along the generator boson proxy.
+- `data/highPU_DeepMETPVRobust_v3_noTheoryCorr/`: only the inputs of the same histmaker without theory corrections
+  (`--theoryCorr --ewTheoryCorr`), for the comparison with the May 2024 inputs, which had none
+  (`inputs_May2024_vs_noTheoryCorr.txt`), and with the inputs of v3 (`inputs_noTheoryCorr_vs_theoryCorr.txt`).
 
 Changes with respect to the May 2024 calibration:
 - Weights for the statistical uncertainties: a variation of the data fit parameters changes the calibrated distribution
