@@ -52,6 +52,8 @@ if __name__ == "__main__":
     data, z, bkg = [], [], []
     for name in list(groups.getNames()):
         members = groups.groups[name].members
+        if len(members) == 0:
+            continue
         if all(m.is_data for m in members):
             data.append(name)
             continue
