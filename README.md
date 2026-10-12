@@ -24,9 +24,21 @@ calibration/run_highPU_DeepMETPVRobust.sh [dataDir] [plotDir]
 ```
 
 or step by step with `python calibration/highPU_DeepMETPVRobust.py --steps <steps>`. The inputs are
-`<dataDir>/input_mumu.pkl`, produced with `scripts/recoil/exportHists.py` of WRemnants from a W-like histmaker output
-with `--recoilHists`. `data/highPU_DeepMETPVRobust_v2/` uses the same inputs as the May 2024 calibration in
-`data/highPU_DeepMETPVRobust/`.
+`<dataDir>/input_mumu.pkl`, produced from a W-like histmaker output of WRemnants with `--recoilHists`:
+
+```shell
+python calibration/make_inputs.py -i <mz_wlike_with_mu_eta_pt_*.hdf5> -o <dataDir>/input_mumu.pkl
+```
+
+The Z sample is the one the calibration is applied to in WRemnants (`samples.zprocs_recoil`), all other simulated
+processes are background. Calibrations:
+- `data/highPU_DeepMETPVRobust/`: May 2024 calibration (deployed in wremnants-data), from Jan's inputs (W-like
+  histmaker of May 2024 without theory corrections, converted with `scripts/recoil/exportHists.py`).
+- `data/highPU_DeepMETPVRobust_v2/`: fits redone from the same inputs with the changes below.
+- `data/highPU_DeepMETPVRobust_v3/`: new inputs from the W-like histmaker of WRemnants 3fec7dd2 with the default
+  theory corrections (`mz_wlike_with_mu_eta_pt.py --recoilHists`,
+  `/ceph/submit/data/user/d/david_w/WMassAnalysis/histmaker_results/261012_wlike_lowMt/mz_wlike_with_mu_eta_pt_scetlib_dyturbo_CT18Z_N3p0LL_N2LO_Corr_maxFiles_m1_recoilInputs.hdf5`),
+  also containing the recoil along the generator boson proxy.
 
 Changes with respect to the May 2024 calibration:
 - Weights for the statistical uncertainties: a variation of the data fit parameters changes the calibrated distribution
