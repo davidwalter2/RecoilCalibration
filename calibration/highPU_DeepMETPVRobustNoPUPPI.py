@@ -46,7 +46,7 @@ def bkg_para():
     proc = "bkg"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "TTbar+EWK #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['bkg_para']
 
@@ -57,10 +57,10 @@ def bkg_para():
     qTRebin = list(range(0, 30, 1)) + list(range(30, 50, 2)) + list(range(50, 80, 5)) + [80, 90, 100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     #rqf.setSplineConfig([1, 4, 8, 20, 60], extrpl=[None, 60])
-    rqf.setSplineConfig([1, 4, 8, 15, 30,  60], extrpl=[None, 60])
+    rqf.setSplineConfig([1, 4, 8, 15, 30, 60], extrpl=[None, 60])
 
     rqf.qparms_prefit()
     rqf.plot_refit_quantiles(prefit=True)
@@ -99,7 +99,7 @@ def z_para():
     proc = "z"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "DY #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['z_para']
 
@@ -109,7 +109,7 @@ def z_para():
     qTRebin = list(range(0, 30, 1)) + list(range(30, 50, 2)) + list(range(50, 80, 5)) + [80, 90, 100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     rqf.setSplineConfig([1, 4, 8, 15, 30,  60], extrpl=[None, 60])
 
@@ -156,7 +156,7 @@ def data_para(bkg_unc=False):
     proc = "data"
     plotDir = f"{basePlotDir}/{proc}_para{suffix}"
     procLabel = "Data #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['data_para']
     bhist_bkg = data_z['bkg_para']
@@ -168,7 +168,7 @@ def data_para(bkg_unc=False):
     qTRebin = list(range(0, 30, 1)) + list(range(30, 50, 2)) + list(range(50, 80, 5)) + [80, 90, 100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging, suffix=suffix)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     rqf.setSplineConfig([1, 4, 8, 15, 30, 60], extrpl=[None, 60])
     rqf.setBackground(f"{dataDir}/bkg_para_postfit.pkl", bhist_bkg, sf=(1.2 if bkg_unc else 1.0))
@@ -277,14 +277,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
 
-    #z_para()
-    #z_perp()
+    z_para()
+    z_perp()
 
-    #bkg_para()
-    #bkg_perp()
+    bkg_para()
+    bkg_perp()
 
-    #data_para(bkg_unc=False)
-    #data_perp(bkg_unc=False)
+    data_para(bkg_unc=False)
+    data_perp(bkg_unc=False)
 
     #data_para(bkg_unc=True)
     #data_perp(bkg_unc=True)

@@ -46,7 +46,7 @@ def bkg_para():
     proc = "bkg"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "TTbar+EWK #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['bkg_para']
 
@@ -55,7 +55,7 @@ def bkg_para():
     qTRebin = list(range(0, 30, 2)) + list(range(30, 50, 2)) + list(range(50, 100, 5)) + [100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     rqf.setSplineConfig([2, 6, 20, 60], extrpl=[None, 60])
 
@@ -97,7 +97,7 @@ def z_para():
     proc = "z"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "DY #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['z_para']
 
@@ -106,7 +106,7 @@ def z_para():
     qTRebin = list(range(0, 30, 1)) + list(range(30, 50, 2)) + list(range(50, 100, 5)) + [100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     rqf.setSplineConfig([2, 6, 20, 60], extrpl=[None, 60])
 
@@ -154,7 +154,7 @@ def data_para(bkg_unc=False):
     proc = "data"
     plotDir = f"{basePlotDir}/{proc}_para{suffix}"
     procLabel = "Data #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#plusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['data_para']
     bhist_bkg = data_z['bkg_para']
@@ -165,7 +165,7 @@ def data_para(bkg_unc=False):
     qTRebin = list(range(0, 30, 1)) + list(range(30, 50, 2)) + list(range(50, 100, 5)) + [100]
 
     rqf = qf.QuantileFitter(proc, met, procLabel, metLabel, dataDir, plotDir, "para", lumiLabel, logging, suffix=suffix)
-    rqf.setHistConfig(bhist, "recoil_para", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
+    rqf.setHistConfig(bhist, "recoil_para_qt", min(qTRebin), max(qTRebin), min(recoilRebin), max(recoilRebin), qTRebin=qTRebin, recoilRebinFit=1, recoilRebinPlt=2)
     rqf.setQuantiles(bins_for_quantiles=bins_for_quantiles)
     rqf.setSplineConfig([2, 6, 20, 60], extrpl=[None, 60])
     rqf.setBackground(f"{dataDir}/bkg_para_postfit.pkl", bhist_bkg, sf=(1.2 if bkg_unc else 1.0))
@@ -235,7 +235,7 @@ def z_para_gen():
 def export():
 
     exp = exportModel.Export()
-    exp.set_limits(500, -100, 100) # limits on ut
+    exp.set_limits(200, -100, 100) # limits on ut
     exp.add_base_transform(f"{dataDir}/z_para_postfit.pkl", f"{dataDir}/data_para_postfit.pkl", f"{dataDir}/z_perp_postfit.pkl", f"{dataDir}/data_perp_postfit.pkl")
     exp.add_systematic("bkg_para", f"{dataDir}/data_para_postfit.pkl", f"{dataDir}/data_para_bkg_postfit.pkl")
     exp.add_systematic("bkg_perp", f"{dataDir}/data_perp_postfit.pkl", f"{dataDir}/data_perp_bkg_postfit.pkl")
@@ -264,14 +264,14 @@ if __name__ == "__main__":
         data_z = pickle.load(f)
     lumiLabel = data_z['lumi_header']
 
-    #z_para()
-    #z_perp()
+    z_para()
+    z_perp()
 
-    #bkg_para()
-    #bkg_perp()
+    bkg_para()
+    bkg_perp()
 
-    #data_para(bkg_unc=False)
-    #data_perp(bkg_unc=False)
+    data_para(bkg_unc=False)
+    data_perp(bkg_unc=False)
 
     #data_para(bkg_unc=True)
     #data_perp(bkg_unc=True)

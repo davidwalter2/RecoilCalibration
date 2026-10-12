@@ -45,7 +45,7 @@ def bkg_para():
     proc = "bkg"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "TTbar+EWK #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#minusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['bkg_para']
 
@@ -86,8 +86,9 @@ def z_perp():
 
     rqf.qparms_prefit()
     rqf.plot_refit_quantiles(prefit=True)
-    parms = rqf.fit(withConstraint=False)
-    rqf.fit(withConstraint=True, parms=parms)
+    #parms = rqf.fit(withConstraint=False)
+    #rqf.fit(withConstraint=True, parms=parms)
+    rqf.fit(withConstraint=True, parms=parms, ext=f"{dataDir}/z_perp_postfit.pkl")
     rqf.plot_refit_quantiles(prefit=False, xMin=min(recoilRebin), xMax=max(recoilRebin))
     rqf.plot_refit_quantiles(prefit=False, logY=False, xMin=min(recoilRebin), xMax=max(recoilRebin))
     rqf.qparms_postfit()
@@ -97,7 +98,7 @@ def z_para():
     proc = "z"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "DY #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#minusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['z_para']
 
@@ -151,7 +152,7 @@ def data_para():
     proc = "data"
     plotDir = f"{basePlotDir}/{proc}_para"
     procLabel = "Data #rightarrow #mu^{+}#mu^{#minus}"
-    metLabel = f"{met}, U_{{#parallel}}"
+    metLabel = f"{met}, U_{{#parallel}}#minusq_{{T}}"
     utils.mkdir(plotDir, False)
     bhist = data_z['data_para']
     bhist_bkg = data_z['bkg_para']
@@ -259,12 +260,12 @@ if __name__ == "__main__":
     utils.mkdir(dataDir, False)
 
     #z_para()
-    #z_perp()
+    z_perp()
 
     #bkg_para()
     #bkg_perp()
 
-    data_para()
+    #data_para()
     #data_perp()
     
     #z_perp_gen()
