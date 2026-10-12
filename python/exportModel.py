@@ -105,7 +105,18 @@ class Export:
         self.ut_min_perp = tf.cast(ut_min, tf.float64)
         self.ut_max_perp = tf.cast(ut_max, tf.float64)
 
+    @staticmethod
+    def pdf(func_cdf, pt, ut):
+        with tf.GradientTape() as t:
+            t.watch(ut)
+            cdf = func_cdf(pt, ut)
+        return tf.reshape(t.gradient(cdf, ut), [])
+
     def add_base_transform(self, source_para, target_para, source_perp, target_perp):
+
+        transform_para, nstat_para = self.add_transform_single(source_para, target_para, self.ut_min_para, self.ut_max_para)
+        transform_perp, nstat_perp = self.add_transform_single(source_perp, target_perp, self.ut_min_perp, self.ut_max_perp)
+        self.nstat = nstat_para + nstat_perp
 
         parms_target_para, vscaled_target_para, func_cdfinv_target_para = self.get_invcdf(target_para)
         parms_source_para, vscaled_source_para, func_cdf_source_para = self.get_cdf(source_para)
@@ -113,11 +124,9 @@ class Export:
         parms_target_perp, vscaled_target_perp, func_cdfinv_target_perp = self.get_invcdf(target_perp)
         parms_source_perp, vscaled_source_perp, func_cdf_source_perp = self.get_cdf(source_perp)
 
-        self.nstat = parms_target_para.shape[0] + parms_source_para.shape[0] + parms_target_perp.shape[0] + parms_source_perp.shape[0]
-
         def base_transform(pt, ut_para, ut_perp):
-            ret_para, ret_grad_para = self.add_transform_single(parms_source_para, vscaled_source_para, func_cdf_source_para, parms_target_para, vscaled_target_para, func_cdfinv_target_para, self.ut_min_para, self.ut_max_para)(pt, ut_para)
-            ret_perp, ret_grad_perp = self.add_transform_single(parms_source_perp, vscaled_source_perp, func_cdf_source_perp, parms_target_perp, vscaled_target_perp, func_cdfinv_target_perp, self.ut_min_perp, self.ut_max_perp)(pt, ut_perp)
+            ret_para, ret_grad_para = transform_para(pt, ut_para)
+            ret_perp, ret_grad_perp = transform_perp(pt, ut_perp)
             ret_grad = tf.concat([ret_grad_para, ret_grad_perp], 0)
             return ret_para, ret_perp, ret_grad
 
@@ -134,56 +143,53 @@ class Export:
         self.func_names.append(f"base_transform_no_unc")
         self.func_inputs.append([self.scalar_spec, self.scalar_spec, self.scalar_spec])
 
-    def add_transform_single(self, parms_source, vscaled_source, func_cdf_source, parms_target, vscaled_target, func_cdfinv_target, ut_min, ut_max):
- 
-        nparms = parms_source.shape[0] + parms_target.shape[0]
-        def func_cdfinv_pdf_target(pt, quant):
-            with tf.GradientTape() as t:
-                t.watch(quant)
-                cdfinv = func_cdfinv_target(pt, quant)
-            pdfreciprocal = t.gradient(cdfinv, quant)
-            pdf = 1./pdfreciprocal
-            return cdfinv, pdf
+    def add_transform_single(self, source, target, ut_min, ut_max):
+        """
+        Transform u -> u' = F_target^-1(F_source(u)), with weights for the variations of the source (MC) and the
+        target (data) fit parameters along the eigenvectors of their covariance. If the MC follows p(u), the
+        transformed distribution is p_target(u') p(u)/p_source(u), with u = u(u') the inverse transform. To first
+        order, a variation of the target parameters changes it through p_target(u') at fixed u' and a variation
+        of the source parameters through 1/p_source(u) at fixed u, independently of p:
+            log w = dlog p_target(u')/dtheta_target * delta_theta_target
+            log w = -dlog p_source(u)/dtheta_source * delta_theta_source
+        The weights are exponentiated rather than linearized, so that they stay positive where the variations are
+        large (in the tails and where the fit is extrapolated in qT), and their inverse is the mirrored variation.
+        """
+        parms_source, vscaled_source, func_cdf_source = self.get_cdf(source)
+        parms_target, vscaled_target, func_cdf_target = self.get_cdf(target)
+        _, _, func_cdfinv_target = self.get_invcdf(target)
+        nparms = vscaled_source.shape[1] + vscaled_target.shape[1]
 
         def transform(pt, ut):
             pt = tf.where(tf.math.greater(pt, self.pt_max), self.pt_max, pt)
-            #ut = tf.where(tf.math.greater(ut, ut_max), ut_max, ut)
-            #ut = tf.where(tf.math.less(ut, ut_min), ut_min, ut)
+            ut_transformed = tf.reshape(func_cdfinv_target(pt, func_cdf_source(pt, ut)), [])
+            ut_transformed_fixed = tf.stop_gradient(ut_transformed)
+
             with tf.GradientTape(persistent=True) as t:
                 t.watch(parms_source)
                 t.watch(parms_target)
+                pdf_source = self.pdf(func_cdf_source, pt, ut)
+                pdf_target = self.pdf(func_cdf_target, pt, ut_transformed_fixed)
+                logpdf_source = tf.math.log(tf.maximum(pdf_source, tf.constant(1e-300, tf.float64)))
+                logpdf_target = tf.math.log(tf.maximum(pdf_target, tf.constant(1e-300, tf.float64)))
 
-                cdf_source = func_cdf_source(pt, ut)
-                ut_transformed, pdf = func_cdfinv_pdf_target(pt, cdf_source)
-
-                ut_transformed = tf.reshape(ut_transformed, [])
-                pdf = tf.reshape(pdf, [])
-
-            pdf_grad_source = t.gradient(pdf, parms_source)
-            pdf_grad_target = t.gradient(pdf, parms_target)
-
+            grad_source = t.gradient(logpdf_source, parms_source)
+            grad_target = t.gradient(logpdf_target, parms_target)
             del t
 
-            weight_grad_source = pdf_grad_source/pdf
-            weight_grad_target = pdf_grad_target/pdf
+            weight_mc_eig = tf.exp(-tf.reshape(grad_source[None, :] @ vscaled_source, [-1]))
+            weight_data_eig = tf.exp(tf.reshape(grad_target[None, :] @ vscaled_target, [-1]))
+            weight_eig = tf.concat([weight_mc_eig, weight_data_eig], axis=0)
+            weight_eig_nom = tf.ones([nparms], dtype=tf.float64)
 
-            weight_grad_source = weight_grad_source[None, :]
-            weight_grad_target = weight_grad_target[None, :]
-
-            weight_grad_mc_eig = weight_grad_source @ vscaled_source
-            weight_grad_data_eig = weight_grad_target @ vscaled_target
-
-            weight_grad_mc_eig = tf.reshape(weight_grad_mc_eig, [-1])
-            weight_grad_data_eig = tf.reshape(weight_grad_data_eig, [-1])
-
-            weight_grad_eig = tf.concat([weight_grad_mc_eig, weight_grad_data_eig], axis=0) + 1.0
-            weight_grad_eig_nom = tf.constant([1.]*nparms, dtype=tf.float64)
-
-            ret = tf.where(tf.math.logical_or(tf.math.greater_equal(ut, self.ut_max), tf.math.less_equal(ut, self.ut_min)), ut, ut_transformed)
-            ret_grad = tf.where(tf.math.logical_or(tf.math.greater_equal(ut, self.ut_max), tf.math.less_equal(ut, self.ut_min)), weight_grad_eig_nom, weight_grad_eig)
+            # outside of the fit range the recoil is not transformed
+            outside = tf.math.logical_or(tf.math.greater_equal(ut, ut_max), tf.math.less_equal(ut, ut_min))
+            valid = tf.math.logical_and(tf.math.greater(pdf_source, 0.), tf.math.greater(pdf_target, 0.))
+            ret = tf.where(outside, ut, ut_transformed)
+            ret_grad = tf.where(tf.math.logical_and(tf.math.logical_not(outside), valid), weight_eig, weight_eig_nom)
             return ret, ret_grad
-        
-        return transform
+
+        return transform, nparms
 
     def add_transform_single_no_unc(self, func_cdf_source, func_cdfinv_target, ut_min, ut_max):
 
@@ -203,69 +209,6 @@ class Export:
             return tf.where(tf.math.logical_or(tf.math.greater_equal(ut, ut_max), tf.math.less_equal(ut, ut_min)), ut, ut_transformed)
 
         return transform
-
-    def add_transform_single_(self, name, source, target):
-
-        parms_target, vscaled_target, func_cdfinv_target = self.get_invcdf(target)
-        parms_source, vscaled_source, func_cdf_source = self.get_cdf(source)
-        nparms = parms_target.shape[0] + parms_source.shape[0]
-
-        def func_cdfinv_pdf_target(pt, quant):
-            with tf.GradientTape() as t:
-                t.watch(quant)
-                cdfinv = func_cdfinv_target(pt, quant)
-            pdfreciprocal = t.gradient(cdfinv, quant)
-            pdf = 1./pdfreciprocal
-            return cdfinv, pdf
-
-        def transform_stat_unc(pt, ut):
-
-            with tf.GradientTape(persistent=True) as t:
-                t.watch(parms_source)
-                t.watch(parms_target)
-
-                cdf_source = func_cdf_source(pt, ut)
-                ut_transformed, pdf = func_cdfinv_pdf_target(pt, cdf_source)
-
-                ut_transformed = tf.reshape(ut_transformed, [])
-                pdf = tf.reshape(pdf, [])
-
-            pdf_grad_source = t.gradient(pdf, parms_source)
-            pdf_grad_target = t.gradient(pdf, parms_target)
-
-            del t
-
-            weight_grad_source = pdf_grad_source/pdf
-            weight_grad_target = pdf_grad_target/pdf
-
-            weight_grad_source = weight_grad_source[None, :]
-            weight_grad_target = weight_grad_target[None, :]
-
-            weight_grad_mc_eig = weight_grad_source @ vscaled_source
-            weight_grad_data_eig = weight_grad_target @ vscaled_target
-
-            weight_grad_mc_eig = tf.reshape(weight_grad_mc_eig, [-1])
-            weight_grad_data_eig = tf.reshape(weight_grad_data_eig, [-1])
-
-            weight_grad_eig = tf.concat([weight_grad_mc_eig, weight_grad_data_eig], axis=0) + 1.0
-            weight_grad_eig_nom = tf.constant([1.]*nparms, dtype=tf.float64)
-
-            ret = tf.where(tf.math.logical_or(tf.math.greater(ut, self.ut_max), tf.math.less(ut, self.ut_min)), ut, ut_transformed)
-            ret_grad = tf.where(tf.math.logical_or(tf.math.greater(ut, self.ut_max), tf.math.less(ut, self.ut_min)), weight_grad_eig_nom, weight_grad_eig)
-            return ret, ret_grad
-        
-        self.funcs.append(transform_stat_unc)
-        self.func_names.append(f"transform_{name}")
-
-        def transform(pt, ut):
-            cdf_mc = func_cdf_source(pt, ut)
-            ut_transformed, pdf = func_cdfinv_pdf_target(pt, cdf_mc)
-            ut_transformed = tf.reshape(ut_transformed, [])
-            return tf.where(tf.math.logical_or(tf.math.greater(ut, self.ut_max), tf.math.less(ut, self.ut_min)), ut, ut_transformed)
-
-        self.funcs.append(transform)
-        self.func_names.append(f"transform_{name}_no_unc")
-        return nparms
 
     def add_pdf(self, name, nom, para=True):
         if para:
@@ -290,30 +233,37 @@ class Export:
         self.func_names.append(f"pdf_{name}")
         self.func_inputs.append([self.scalar_spec, self.scalar_spec])
 
-    def add_systematic(self, name, nom, pert):
-        # returns the weight as ratio of two PDFs
-        parms_nom, vscaled_nom, func_cdf_nom = self.get_cdf(nom)
-        parms_pert, vscaled_pert, func_cdf_pert = self.get_cdf(pert)
+    def add_systematic(self, name, target, target_alt, source=None, source_alt=None, para=True):
+        """
+        Weight for replacing the target (data) fit of the transform, and optionally also the source (MC) fit, by
+        an alternative one. To first order in the difference of the transforms (see add_transform_single)
+            w = p_target_alt(u')/p_target(u') x p_source(u)/p_source_alt(u)
+        Inputs: qT, and the recoil component u before and u' after the nominal transform
+        """
+        if para:
+            ut_min, ut_max = self.ut_min_para, self.ut_max_para
+        else:
+            ut_min, ut_max = self.ut_min_perp, self.ut_max_perp
 
-        def calc_weight(pt, ut):
-            ut = tf.where(tf.math.greater(ut, self.ut_max), self.ut_max, ut)
-            ut = tf.where(tf.math.less(ut, self.ut_min), self.ut_min, ut)
+        _, _, func_cdf_target = self.get_cdf(target)
+        _, _, func_cdf_target_alt = self.get_cdf(target_alt)
+        if source is not None:
+            _, _, func_cdf_source = self.get_cdf(source)
+            _, _, func_cdf_source_alt = self.get_cdf(source_alt)
+
+        def calc_weight(pt, ut, ut_corr):
             pt = tf.where(tf.math.greater(pt, self.pt_max), self.pt_max, pt)
-            with tf.GradientTape() as t:
-                t.watch(ut)
-                pdf = func_cdf_nom(pt, ut)
-            pdfval_nom = t.gradient(pdf, ut)
+            weight = self.pdf(func_cdf_target_alt, pt, ut_corr) / self.pdf(func_cdf_target, pt, ut_corr)
+            if source is not None:
+                weight = weight * self.pdf(func_cdf_source, pt, ut) / self.pdf(func_cdf_source_alt, pt, ut)
+            # outside of the fit range the recoil is not transformed, nor varied
+            outside = tf.math.logical_or(tf.math.greater_equal(ut, ut_max), tf.math.less_equal(ut, ut_min))
+            valid = tf.math.logical_and(tf.math.logical_not(outside), tf.math.is_finite(weight))
+            return tf.where(valid, weight, tf.ones_like(weight))
 
-            with tf.GradientTape() as t:
-                t.watch(ut)
-                pdf = func_cdf_pert(pt, ut)
-            pdfval_pert = t.gradient(pdf, ut)
-            
-            return tf.math.divide(pdfval_pert, pdfval_nom)
- 
         self.funcs.append(calc_weight)
         self.func_names.append(f"syst_{name}")
-        self.func_inputs.append([self.scalar_spec, self.scalar_spec])
+        self.func_inputs.append([self.scalar_spec, self.scalar_spec, self.scalar_spec])
 
     def export(self, out):
         def meta():

@@ -23,9 +23,74 @@ import wums.fitutils
 import wums.tfutils
 
 from scipy.optimize import curve_fit
+import scipy.optimize
 import boostHistHelpers as bhh
 
 np.set_printoptions(threshold=sys.maxsize)
+
+
+def polish_fit(bhist, func, parmvals, norm_axes=None, func_constraint=None, args=(), args_constraint=(), edmtol=0.1, maxiter=1000, max_attempts=3):
+    """
+    Minimize the same binned likelihood as wums.fitutils.fit_hist (mode nll_bin_integrated) with scipy's trust-exact
+    method, which uses the full hessian, starting from parmvals. For fits where trust-krylov stops before reaching
+    the minimum. Returns the same dictionary as fit_hist.
+    """
+    dtype = tf.float64
+    xvals = [tf.constant(c, dtype=dtype) for c in bhist.axes.centers]
+    xwidths = [tf.constant(w, dtype=dtype) for w in bhist.axes.widths]
+    xedges = [tf.constant(e, dtype=dtype) for e in bhist.axes.edges]
+    yvals = tf.constant(bhist.values(), dtype=dtype)
+    yvariances = tf.constant(bhist.variances(), dtype=dtype)
+    val_grad_args = {
+        "func_loss": wums.fitutils.nll_loss_bin_integrated,
+        "func_constraint": func_constraint,
+        "args_loss": (xvals, xwidths, xedges, yvals, yvariances, func, norm_axes),
+        "extra_args_loss": args,
+        "args_constraint": (xvals, xedges),
+        "extra_args_constraint": args_constraint,
+    }
+
+    cache = {}
+    def val_grad(x):
+        if cache.get("x_grad") is None or not np.array_equal(cache["x_grad"], x):
+            loss, grad = wums.fitutils.val_grad(wums.fitutils.loss_with_constraint, parms=tf.constant(x, dtype=dtype), **val_grad_args)
+            cache["x_grad"], cache["val_grad"] = np.copy(x), (loss.numpy(), grad.numpy())
+        return cache["val_grad"]
+
+    def hess(x):
+        _, _, h = wums.fitutils.val_grad_hess(wums.fitutils.loss_with_constraint, parms=tf.constant(x, dtype=dtype), **val_grad_args)
+        return h.numpy()
+
+    # the cdf is only once differentiable (pchip), so the minimization can stall near the minimum, restarting
+    # resets the trust region
+    x, nit = parmvals, 0
+    for attempt in range(max_attempts):
+        res = scipy.optimize.minimize(lambda x: val_grad(x)[0], x, method="trust-exact", jac=lambda x: val_grad(x)[1], hess=hess, options={"gtol": 1e-6, "maxiter": maxiter})
+        x, nit = res.x, nit + res.nit
+
+        loss, grad, h = wums.fitutils.val_grad_hess(wums.fitutils.loss_with_constraint, parms=tf.constant(x, dtype=dtype), **val_grad_args)
+        loss, grad, h = loss.numpy(), grad.numpy(), h.numpy()
+        eigvals = np.linalg.eigvalsh(h)
+        try:
+            edmval = 0.5 * grad @ np.linalg.solve(h, grad)
+            cov = np.linalg.inv(h)
+        except np.linalg.LinAlgError:
+            edmval, cov = 99., np.zeros_like(h)
+        if 0. <= edmval < edmtol and eigvals[0] > 0.:
+            break
+
+    return {
+        "x": x,
+        "hess": h,
+        "cov": cov,
+        "status": 0 if 0. <= edmval < edmtol else 1,
+        "covstatus": 0 if eigvals[0] > 0. else 1,
+        "hess_eigvals": eigvals,
+        "edmval": edmval,
+        "loss_val": loss,
+        "polish_message": res.message,
+        "polish_nit": nit,
+    }
 
 
 class QuantileFitter:
@@ -267,7 +332,7 @@ class QuantileFitter:
 
     def setBackground(self, pkl_bkg, bhist_bkg, sf=1.):
         self.sub_bkg = True
-        bhist_bkg *= sf
+        bhist_bkg = bhist_bkg * sf # not in place, the input histogram is reused for other variations
         self.bhist_bkg_fit = self.rebin(bhist_bkg, self.qTRebin, self.recoilRebinFit)
         self.bhist_bkg_plt = self.rebin(bhist_bkg, self.qTRebin, self.recoilRebinPlt)
         #self.bhist_minus_bkg_fit = self.bhist_minus_bkg_fit + self.bhist_bkg_fit*(-1)
@@ -867,7 +932,8 @@ class QuantileFitter:
             canvas.Draw()
             canvas.SaveAs("%s/q%d.png" % (outDir, i))
             canvas.SaveAs("%s/q%d.pdf" % (outDir, i))
-            canvas.Delete()                  
+            ROOT.SetOwnership(canvas, False) # deleted here, not again by python
+            canvas.Delete()
 
 
 
@@ -980,10 +1046,11 @@ class QuantileFitter:
             canvas.Draw()
             canvas.SaveAs(f"{outDir}/knot_{iKnot}.png")
             canvas.SaveAs(f"{outDir}/knot_{iKnot}.pdf")
+            ROOT.SetOwnership(canvas, False) # deleted here, not again by python
             canvas.Delete()
 
 
-    def fit(self, withConstraint=False, parms=[], ext=""):
+    def fit(self, withConstraint=False, parms=[], ext="", polish_only=False):
         self.logging.info("Start fit")
         outDir = f"{self.plotDir}/quantiles_refit/"
         utils.mkdir(outDir, True)
@@ -1002,10 +1069,20 @@ class QuantileFitter:
             parms_prefit = parms
 
         start = time.time()
-        if withConstraint:
+        res = None
+        if polish_only:
+            pass
+        elif withConstraint:
             res = wums.fitutils.fit_hist(self.bhist_fit, self.func_model, parms_prefit, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args, func_constraint=self.func_constraint, args_constraint=fit_args)
         else:
             res = wums.fitutils.fit_hist(self.bhist_fit, self.func_model, parms_prefit, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args)
+
+        # trust-krylov can stop before the minimum, continue constrained fits (no null directions) with trust-exact
+        if withConstraint and (res is None or res['status'] != 0 or res['covstatus'] != 0):
+            if res is not None:
+                self.logging.info(" -> fit_hist ended with status={}, cov_status={}, edm={:.3e}, continue with trust-exact".format(res['status'], res['covstatus'], res['edmval']))
+            res = polish_fit(self.bhist_fit, self.func_model, parms_prefit if res is None else res['x'], norm_axes=[1], func_constraint=self.func_constraint, args=fit_args, args_constraint=fit_args, edmtol=0.1)
+            self.logging.info(" -> trust-exact: {} after {} iterations".format(res['polish_message'], res['polish_nit']))
         end = time.time()
 
         parms_vals = res['x']
@@ -1418,9 +1495,13 @@ class QuantileFitter:
             canvas.Draw()
             canvas.SaveAs("%s/%03d_recoil.png" % (outDir, qTbin))
             canvas.SaveAs("%s/%03d_recoil.pdf" % (outDir, qTbin))
+            ROOT.SetOwnership(dummyB, False) # deleted here, not again by python
             dummyB.Delete()
+            ROOT.SetOwnership(dummyT, False) # deleted here, not again by python
             dummyT.Delete()
+            ROOT.SetOwnership(padT, False) # deleted here, not again by python
             padT.Delete()
+            ROOT.SetOwnership(padB, False) # deleted here, not again by python
             padB.Delete()
             g_chi2.SetPoint(qTbin, qT, chi2/ndof)
             g_pchi2.SetPoint(qTbin, qT, pval_chi2)
@@ -1525,9 +1606,13 @@ class QuantileFitter:
         canvas.Draw()
         canvas.SaveAs("%s/global.png" % outDir)
         canvas.SaveAs("%s/global.pdf" % outDir)
+        ROOT.SetOwnership(dummyB, False) # deleted here, not again by python
         dummyB.Delete()
+        ROOT.SetOwnership(dummyT, False) # deleted here, not again by python
         dummyT.Delete()
+        ROOT.SetOwnership(padT, False) # deleted here, not again by python
         padT.Delete()
+        ROOT.SetOwnership(padB, False) # deleted here, not again by python
         padB.Delete()
 
 
@@ -1578,6 +1663,7 @@ class QuantileFitter:
         canvas.Draw()
         canvas.SaveAs("%s/chi2.png" % outDir)
         canvas.SaveAs("%s/chi2.pdf" % outDir)
+        ROOT.SetOwnership(canvas, False) # deleted here, not again by python
         canvas.Delete()
         
 
@@ -1646,4 +1732,5 @@ class QuantileFitter:
         canvas.Draw()
         canvas.SaveAs("%s/pval.png" % outDir)
         canvas.SaveAs("%s/pval.pdf" % outDir)
+        ROOT.SetOwnership(canvas, False) # deleted here, not again by python
         canvas.Delete()

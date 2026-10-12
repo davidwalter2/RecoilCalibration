@@ -4,3 +4,6 @@ __pycache__/
 reproduce/*.log
 data/*/model_mc_data_reexport.tflite
 narf/
+data/*/logs/
+data/*/run*.log
+data/*/launch*.sh
