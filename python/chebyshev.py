@@ -2,6 +2,8 @@
 import math
 import tensorflow as tf
 import narf
+import wums.fitutils
+import wums.tfutils
 import numpy as np
 
 
@@ -115,7 +117,7 @@ class Chebyshev:
         p0 = parms_2d[:,0]
         p1 = parms_2d[:,1]
         parms_ = self.pol1(xvals[0], p0, p1)
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -128,7 +130,7 @@ class Chebyshev:
         p0 = parms_2d[:,0]
         p1 = parms_2d[:,1]
         parms_ = self.pol2(xvals[0], p0, p1)
-        return narf.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
+        return wums.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
 
     def cond_pol2(self, xvals, xedges, parms, *args):
         quant_cdfvals = args[0]
@@ -172,7 +174,7 @@ class Chebyshev:
         parms_ = tf.concat([parms_lin1, parms_poly, parms_lin2], 1)
         
         
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -212,7 +214,7 @@ class Chebyshev:
         parms_lin2 = self.pol1(xvals[0], lin20, lin21)
         parms_ = tf.concat([parms_lin1, parms_poly, parms_lin2], 1)
         
-        return narf.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
+        return wums.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
 
     def cond_pol3(self, xvals, xedges, parms, *args):
         quant_cdfvals = args[0]
@@ -254,7 +256,7 @@ class Chebyshev:
         parms_ = tf.concat([parms_lin1, parms_poly, parms_lin2], 1)
         
         
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -291,7 +293,7 @@ class Chebyshev:
         parms_poly = self.pol3(xvals[0], p0, p1, p2, p3) 
         parms_lin2 = self.pol1(xvals[0], lin20, lin21)
         parms_ = tf.concat([parms_lin1, parms_poly, parms_lin2], 1)
-        return narf.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
+        return wums.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
 
       
     def cond_pol4(self, xvals, xedges, parms, *args):
@@ -346,7 +348,7 @@ class Chebyshev:
         parms_ = self.pol4(xvals[0], p0, p1, p2, p3, p4) 
   
         
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -387,7 +389,7 @@ class Chebyshev:
         parms_ = tf.concat([parms_lin1, parms_poly, parms_lin2], 1)
         
         return self.func_constraint_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1)
-        #return narf.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
+        #return wums.fitutils.func_constraint_for_quantile_fit(xvals, xedges, parms_, axis=1)
       
     def cond_pol5(self, xvals, xedges, parms, *args):
         quant_cdfvals = args[0]
@@ -432,7 +434,7 @@ class Chebyshev:
         
         
         
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -519,7 +521,7 @@ class Chebyshev:
         
         
         
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1) # , transform = (self.func_transform_cdf, self.func_transform_quantile)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:

@@ -1,0 +1,6 @@
+__pycache__/
+*.bck
+*.bck.py
+reproduce/*.log
+data/*/model_mc_data_reexport.tflite
+narf/

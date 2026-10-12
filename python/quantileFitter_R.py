@@ -20,12 +20,12 @@ import narf
 import pickle
 import tensorflow as tf
 
-import narf.fitutils as fitter
+import wums.fitutils as fitter
 import hist
 import boost_histogram as bh
 import baseFunctions as rfb
 import narf
-import narf.fitutils
+import wums.fitutils
 
 from scipy.optimize import curve_fit
 import boostHistHelpers as bhh
@@ -111,11 +111,11 @@ class QuantileFitter:
         hist_cdfvals_up = tf.concat([x0, hist_cdfvals_up], axis=axis)
         hist_cdfvals_dw = tf.concat([x0, hist_cdfvals_dw], axis=axis)
 
-        #quants = narf.fitutils.pchip_interpolate(hist_cdfvals, xedges[axis], quant_cdfvals, axis=axis)
-        quants = narf.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals, axis=axis) # quants[0] = 0 force?
+        #quants = wums.fitutils.pchip_interpolate(hist_cdfvals, xedges[axis], quant_cdfvals, axis=axis)
+        quants = wums.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals, axis=axis) # quants[0] = 0 force?
         
-        quants_up = narf.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals_up, quant_cdfvals, axis=axis) # quants[0] = 0 force?
-        quants_down = narf.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals_dw, quant_cdfvals, axis=axis) # quants[0] = 0 force?
+        quants_up = wums.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals_up, quant_cdfvals, axis=axis) # quants[0] = 0 force?
+        quants_down = wums.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals_dw, quant_cdfvals, axis=axis) # quants[0] = 0 force?
         
 
         '''
@@ -137,7 +137,7 @@ class QuantileFitter:
         quant_cdfvals_down = tf.clip_by_value(quant_cdfvals_down, 0., 1.)
 
         
-        quants_up = narf.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals_up, axis=axis)
+        quants_up = wums.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals_up, axis=axis)
         
         quants_up = tf.where(quant_cdfvals_up == 0., x_low, quants_up)
         quants_up = tf.where(quant_cdfvals_up == 1., x_high, quants_up)
@@ -145,7 +145,7 @@ class QuantileFitter:
         
         quit()
 
-        quants_down = narf.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals_down, axis=axis)
+        quants_down = wums.fitutils.pchip_interpolate(xedges[axis], hist_cdfvals, quant_cdfvals_down, axis=axis)
         quants_down = tf.where(quant_cdfvals_down == 0., x_low, quants_down)
         quants_down = tf.where(quant_cdfvals_down == 1., x_high, quants_down)
         '''
@@ -177,7 +177,7 @@ class QuantileFitter:
    
         hist_quantiles, hist_quantiles_err = self.hist_to_quantiles(bhist_incl, self.quant_recvals, axis=0)
         ev_map = ROOT.TH2D("ev_map", "", len(hist_quantiles)-1, 0, len(hist_quantiles)-1, len(self.bins_qT)-1, 0, len(self.bins_qT)-1)
-        #qparms, qparms_err =  narf.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax) # shape (qTbins, nQparms)
+        #qparms, qparms_err =  wums.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax) # shape (qTbins, nQparms)
         for i in range(0, len(hist_quantiles)-1):
             print(" > Probe [{lo:.2f}, {hi:.2f}]".format(lo=hist_quantiles[i], hi=hist_quantiles[i+1]))
             try:
@@ -189,7 +189,7 @@ class QuantileFitter:
           
  
         # differential in qT
-        hist_quantiles, hist_quantiles_err = narf.fitutils.hist_to_quantiles(self.bhist_quants, self.quant_recvals_tf, axis=1)
+        hist_quantiles, hist_quantiles_err = wums.fitutils.hist_to_quantiles(self.bhist_quants, self.quant_recvals_tf, axis=1)
         for qTbin in range(0, len(self.bins_qT)-1):
             qT, qTlow, qThigh = self.centers_qT[qTbin], self.bins_qT[qTbin], self.bins_qT[qTbin+1]
             h = self.qTslice(self.bhist, qTlow, qThigh)
@@ -386,7 +386,7 @@ class QuantileFitter:
         
         # compute CDF vals for the backgrounds
         hist_quantiles, hist_quantiles_err = self.hist_to_quantiles(self.bhist_quants, self.quant_recvals_tf, axis=1) # , cdfvals_bkg=self.bkg_cdf 
-        qparms, qparms_err =  narf.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax) # shape (qTbins, nQparms)
+        qparms, qparms_err =  wums.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax) # shape (qTbins, nQparms)
         
         
         for qTbin,quantiles in enumerate(hist_quantiles):
@@ -427,8 +427,8 @@ class QuantileFitter:
             # (85, 91) hist_cdfvals -> edges_qT (85, 1)
             # (1,91) xedges[axis] -> qparms (85, 41)
             # (1, 42) quant_recvals -> qT_vals in qT
-            qparms_val_init = narf.fitutils.pchip_interpolate(self.edges_qT_tf, qparms, self.qT_vals, axis=0) # (nKnots, nQuants)
-            qparms_init = narf.fitutils.pchip_interpolate(self.qT_vals, qparms_val_init, self.edges_qT_tf, axis=0) # to visualize spline
+            qparms_val_init = wums.fitutils.pchip_interpolate(self.edges_qT_tf, qparms, self.qT_vals, axis=0) # (nKnots, nQuants)
+            qparms_init = wums.fitutils.pchip_interpolate(self.qT_vals, qparms_val_init, self.edges_qT_tf, axis=0) # to visualize spline
             qparms_init_np = qparms_init.numpy().T
             #self.qparms_val_init = qparms_val_init
             self.qparms_val_init = []
@@ -565,8 +565,8 @@ class QuantileFitter:
         y_vals_tf_err = [[] for i in range(0, self.nParams)]
         
         # compute CDF vals for the backgrounds
-        hist_quantiles, hist_quantiles_err = narf.fitutils.hist_to_quantiles(self.bhist_quants, self.quant_cdfvals_tf, axis=1) # , cdfvals_bkg=self.bkg_cdf 
-        qparms, qparms_err =  narf.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax)
+        hist_quantiles, hist_quantiles_err = wums.fitutils.hist_to_quantiles(self.bhist_quants, self.quant_cdfvals_tf, axis=1) # , cdfvals_bkg=self.bkg_cdf 
+        qparms, qparms_err =  wums.fitutils.quantiles_to_qparms(hist_quantiles, quant_errs=hist_quantiles_err, x_low=self.recoilMin, x_high=self.recoilMax)
         
         print(hist_quantiles.shape)
         print(qparms.shape) # qTbins, nQparms (85, 41)
@@ -582,12 +582,12 @@ class QuantileFitter:
         # (1,91) xedges[axis] -> qparms (85, 41)
         # (1, 42) quant_cdfvals -> qT_vals in qT
         # pchip_interpolate(hist_cdfvals, xedges[axis], quant_cdfvals, axis=axis)
-        qparms_val = narf.fitutils.pchip_interpolate(edges_qT, qparms, qT_vals, axis=0) # (5, 41)
+        qparms_val = wums.fitutils.pchip_interpolate(edges_qT, qparms, qT_vals, axis=0) # (5, 41)
         
 
         
         # visualize spline
-        qparms_init = narf.fitutils.pchip_interpolate(qT_vals, qparms_val, edges_qT, axis=0)
+        qparms_init = wums.fitutils.pchip_interpolate(qT_vals, qparms_val, edges_qT, axis=0)
         
 
         qparms_init_np = qparms_init.numpy().T
@@ -825,9 +825,9 @@ class QuantileFitter:
         print(" -> Start NLL fitting")
         start = time.time()
         if withConstraint:
-            res = narf.fitutils.fit_hist(self.bhist, self.func_model, parms_init, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args, func_constraint=self.func_constraint, args_constraint=fit_args)
+            res = wums.fitutils.fit_hist(self.bhist, self.func_model, parms_init, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args, func_constraint=self.func_constraint, args_constraint=fit_args)
         else:
-            res = narf.fitutils.fit_hist(self.bhist, self.func_model, parms_init, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args)
+            res = wums.fitutils.fit_hist(self.bhist, self.func_model, parms_init, mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args)
         end = time.time()
               
         parms_vals = res['x']
@@ -966,9 +966,9 @@ class QuantileFitter:
         start = time.time()
         if withConstraint:
             func_constraint = getattr(self.chebyshev, f"cond_pol{self.order}_constraint")
-            res = narf.fitutils.fit_hist(self.bhist, func_model, np.array(func_parms), mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args, func_constraint=func_constraint, args_constraint=fit_args)
+            res = wums.fitutils.fit_hist(self.bhist, func_model, np.array(func_parms), mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args, func_constraint=func_constraint, args_constraint=fit_args)
         else:
-            res = narf.fitutils.fit_hist(self.bhist, func_model, np.array(func_parms), mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args)
+            res = wums.fitutils.fit_hist(self.bhist, func_model, np.array(func_parms), mode="nll_bin_integrated", norm_axes=[1], edmtol=0.1, args=fit_args)
         end = time.time()
               
         parms_vals = res['x']

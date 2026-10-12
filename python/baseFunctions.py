@@ -2,6 +2,8 @@
 import math
 import tensorflow as tf
 import narf
+import wums.fitutils
+import wums.tfutils
 import numpy as np
 
 
@@ -42,9 +44,9 @@ class CubicSpline:
         # unpack parms_postfit to (nKnots, nQuants)
         parms_2d = tf.reshape(parms, (-1, order))
         parms_2d = tf.transpose(parms_2d)
-        parms_ = narf.fitutils.cubic_spline_interpolate(qT_vals, parms_2d, edges_qT, axis=0, extrpl=extrpl)
+        parms_ = wums.fitutils.cubic_spline_interpolate(qT_vals, parms_2d, edges_qT, axis=0, extrpl=extrpl)
 
-        cdf_sig = narf.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1)
+        cdf_sig = wums.fitutils.func_cdf_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1)
         if bkg_cdf != None:
             return tf.matmul(scale_sf_sig, cdf_sig) + tf.matmul(scale_sf_bkg, bkg_cdf)
         else:
@@ -63,6 +65,6 @@ class CubicSpline:
         # unpack parms_postfit to (nKnots, nQuants)
         parms_2d = tf.reshape(parms, (-1, order))
         parms_2d = tf.transpose(parms_2d)
-        parms_ = narf.fitutils.cubic_spline_interpolate(qT_vals, parms_2d, edges_qT, axis=0, extrpl=extrpl)
+        parms_ = wums.fitutils.cubic_spline_interpolate(qT_vals, parms_2d, edges_qT, axis=0, extrpl=extrpl)
         return self.func_constraint_for_quantile_fit(xvals, xedges, parms_, quant_cdfvals, axis=1)
 

@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 import tensorflow as tf
 import narf
-import narf.fitutils
-import narf.tfutils
+import wums.fitutils
+import wums.tfutils
 
 
 class Export:
@@ -46,9 +46,9 @@ class Export:
 
             parms_2d = tf.reshape(parms, (-1, order))
             parms_2d = tf.transpose(parms_2d)
-            qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-            quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-            cdfinvvals = narf.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
+            qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+            quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+            cdfinvvals = wums.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
             return cdfinvvals
 
         return parms, vscaled, func_invcdf
@@ -74,9 +74,9 @@ class Export:
 
             parms_2d = tf.reshape(parms, (-1, order))
             parms_2d = tf.transpose(parms_2d)
-            qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-            quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-            cdfvals = narf.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
+            qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+            quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+            cdfvals = wums.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
             return cdfvals
 
         return parms, vscaled, func_cdf
@@ -147,8 +147,8 @@ class Export:
 
         scalar_spec = tf.TensorSpec([], tf.float64)
         input_signature = [scalar_spec, scalar_spec]
-        model = narf.tfutils.function_to_tflite([meta, transform_para, transform_perp, transform_para_no_unc, transform_perp_no_unc], [[], input_signature, input_signature, input_signature, input_signature])
-        #model = narf.tfutils.function_to_tflite([transform_perp], [input_signature])
+        model = wums.tfutils.function_to_tflite([meta, transform_para, transform_perp, transform_para_no_unc, transform_perp_no_unc], [[], input_signature, input_signature, input_signature, input_signature])
+        #model = wums.tfutils.function_to_tflite([transform_perp], [input_signature])
 
         with open(out, 'wb') as f:
             f.write(model)
@@ -187,9 +187,9 @@ def get_invcdf(input_file):
 
         parms_2d = tf.reshape(parms, (-1, order))
         parms_2d = tf.transpose(parms_2d)
-        qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-        quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-        cdfinvvals = narf.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
+        qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+        quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+        cdfinvvals = wums.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
         return cdfinvvals
 
     return parms, vscaled, func_invcdf
@@ -215,9 +215,9 @@ def get_cdf(input_file):
 
         parms_2d = tf.reshape(parms, (-1, order))
         parms_2d = tf.transpose(parms_2d)
-        qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-        quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-        cdfvals = narf.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
+        qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+        quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+        cdfvals = wums.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
         return cdfvals
 
     return parms, vscaled, func_cdf
@@ -343,8 +343,8 @@ def exportModel(target_para, target_perp, source_para, source_perp, ut_min, ut_m
 
     scalar_spec = tf.TensorSpec([], tf.float64)
     input_signature = [scalar_spec, scalar_spec]
-    model = narf.tfutils.function_to_tflite([meta, transform_para, transform_perp, transform_para_no_unc, transform_perp_no_unc], [[], input_signature, input_signature, input_signature, input_signature])
-    #model = narf.tfutils.function_to_tflite([transform_perp], [input_signature])
+    model = wums.tfutils.function_to_tflite([meta, transform_para, transform_perp, transform_para_no_unc, transform_perp_no_unc], [[], input_signature, input_signature, input_signature, input_signature])
+    #model = wums.tfutils.function_to_tflite([transform_perp], [input_signature])
 
     with open(out, 'wb') as f:
         f.write(model)

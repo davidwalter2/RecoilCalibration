@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 import tensorflow as tf
 import narf
-import narf.fitutils
-import narf.tfutils
+import wums.fitutils
+import wums.tfutils
 
 
 class Export:
@@ -53,9 +53,9 @@ class Export:
 
             parms_2d = tf.reshape(parms, (-1, order))
             parms_2d = tf.transpose(parms_2d)
-            qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-            quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-            cdfinvvals = narf.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
+            qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+            quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+            cdfinvvals = wums.fitutils.pchip_interpolate(quant_cdfvals, quants, quant_outs, axis=ut_axis)
             return cdfinvvals
 
         return parms, vscaled, func_invcdf
@@ -81,9 +81,9 @@ class Export:
 
             parms_2d = tf.reshape(parms, (-1, order))
             parms_2d = tf.transpose(parms_2d)
-            qparms = narf.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
-            quants = narf.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
-            cdfvals = narf.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
+            qparms = wums.fitutils.cubic_spline_interpolate(knots_qt, parms_2d, pts, axis=qt_axis, extrpl=extrpl)
+            quants = wums.fitutils.qparms_to_quantiles(qparms, x_low=ut_low, x_high=ut_high, axis=ut_axis)
+            cdfvals = wums.fitutils.pchip_interpolate(quants, quant_cdfvals, uts, axis=ut_axis)
             return cdfvals
 
         return parms, vscaled, func_cdf
@@ -323,7 +323,7 @@ class Export:
         self.funcs.insert(0, meta)
         self.func_names.insert(0, "meta")
         self.func_inputs.insert(0, [])
-        model = narf.tfutils.function_to_tflite(self.funcs, self.func_inputs, self.func_names)
+        model = wums.tfutils.function_to_tflite(self.funcs, self.func_inputs, self.func_names)
 
         with open(out, 'wb') as f:
             f.write(model)

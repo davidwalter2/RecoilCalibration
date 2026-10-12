@@ -15,7 +15,7 @@ import hist
 import boost_histogram as bh
 import baseFunctions as rfb
 import narf
-import narf.fitutils
+import wums.fitutils
 import boostHistHelpers as bhh
 from scipy.interpolate import CubicSpline
 
@@ -75,8 +75,8 @@ class ResponseCorr:
         edges_qt_tf = edges_qt_tf[None, :]
         respVals_tf = respVals_tf[None, :]
         knots_tf = knots_tf[None, :]
-        fit_vals = narf.fitutils.cubic_spline_interpolate(edges_qt_tf, respVals_tf, knots_tf, axis=-1, extrpl=extrpl)
-        fit_vals_plt = narf.fitutils.cubic_spline_interpolate(knots_tf, fit_vals, edges_qt_tf, axis=-1, extrpl=extrpl)
+        fit_vals = wums.fitutils.cubic_spline_interpolate(edges_qt_tf, respVals_tf, knots_tf, axis=-1, extrpl=extrpl)
+        fit_vals_plt = wums.fitutils.cubic_spline_interpolate(knots_tf, fit_vals, edges_qt_tf, axis=-1, extrpl=extrpl)
         fit_vals_plt = fit_vals_plt.numpy()[0]
         print(fit_vals_plt)
         print(self.centers_qt)
